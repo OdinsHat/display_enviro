@@ -50,8 +50,8 @@ class ZeroWEnvironment:
 
         i2c_bus = busio.I2C(board.SCL, board.SDA)
         self.ccs811 = adafruit_ccs811.CCS811(i2c_bus)
-        self.views = ['temp_hum', 'gas', 'co2_voc']
-        self.current_view = self.views[0]
+        self.views = ['temp_press', 'gas', 'co2_voc', 'light']
+        self.current_view = 0
         self.prepare_lcd()
 
         self.backlight.rgb(255, 255, 255)
@@ -75,12 +75,14 @@ class ZeroWEnvironment:
         """Show a different selection of data dependent on
         the button pressed and current position
         """
-        if self.current_view is 'temp_hum':
+        if self.views[self.current_view] == "temp_press":
             self.show_weather()
-        if self.current_view is 'gas':
+        elif self.views[self.current_view] == "gas":
             self.show_gas()
-        if self.current_view is 'co2_voc':
+        elif self.views[self.current_view] == "co2_voc":
             self.show_environment()
+        elif self.views[self.current_view] == "light":
+            self.show_light()
         else:
             self.show_error()
 
