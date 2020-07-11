@@ -1,0 +1,11 @@
+[Unit]
+Description=A Display-o-Tron and Envirphat service that runs on Pis
+After=multi-user.target
+
+[Service]
+Type=idle
+ExecStart=/usr/bin/python3 /home/pi/displayenviro/display_enviro.py > /home/pi/displayenviro/logs/display_enviro.log 2>&1
+
+[Install]
+WantedBy=multi-user.target
+
