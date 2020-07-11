@@ -20,8 +20,8 @@ import busio
 import envirophat
 import board
 import adafruit_ccs811
-import dothat
-from dothat import touch
+from dothat import lcd, backlight, touch
+from random import random
 
 
 class ZeroWEnvironment:
@@ -36,7 +36,8 @@ class ZeroWEnvironment:
     def __init__(self,
                  busio,
                  envirophat,
-                 dothat,
+                 lcd,
+                 backlight,
                  board,
                  adafruit_ccs811):
         self.unit = 'hPa'
@@ -44,8 +45,8 @@ class ZeroWEnvironment:
         self.weather = envirophat.weather
         self.motion = envirophat.motion
         self.analog = envirophat.analog
-        self.dothat.backlight = dothat.backlight
-        self.lcd = dothat.lcd
+        self.backlight = backlight
+        self.lcd = lcd
 
         i2c_bus = busio.I2C(board.SCL, board.SDA)
         self.ccs811 = adafruit_ccs811.CCS811(i2c_bus)
@@ -53,7 +54,7 @@ class ZeroWEnvironment:
         self.current_view = self.views[0]
         self.prepare_lcd()
 
-        self.dothat.backlight.rgb(255, 255, 255)
+        self.backlight.rgb(255, 255, 255)
 
     def change_view(self, direction):
         """Change the current view shown to the next
@@ -96,6 +97,7 @@ class ZeroWEnvironment:
         Clear the LCD and set cursor position to o,o of screen
         in preperation for writing data to it.
         """
+        self.lcd.set_contrast(0x30)
         self.lcd.clear()
         self.lcd.set_cursor_position(0, 0)
 
@@ -104,28 +106,29 @@ class ZeroWEnvironment:
         Using the Envirophat sensors display the
         temperature and pressure
         """
+        self.backlight.set_graph(0.1)
         self.prepare_lcd()
-        self.lcd.write("%.2f C" % weather.temperature())
+        self.lcd.write("%.2f C" % self.weather.temperature())
         self.lcd.set_cursor_position(0, 1)
-        self.lcd.write("%.2f hPA" % weather.pressure(unit=self.unit))
+        self.lcd.write("%.2f hPA" % self.weather.pressure(unit=self.unit))
 
     def show_gas(self):
         """
-        Show analog gas readings for MQ135 and MQ 5
-        """
+        self.backlight.set_graph(0.2)
         self.prepare_lcd()
         analog_values = self.analog.read_all()
         mq5 = analog_values[0]
         mq135 = analog_values[1]
         self.lcd.write("MQ5 = {:f}".format(mq5))
         self.lcd.set_cursor_position(0, 1)
-        self.lcd.write("MQ135 = {:f}".format(mq135))
+        self.lcd.write("Air = {:f}".format(mq135))
 
     def show_environment(self):
         """
         Show the environment data from CCS811 chip
         connetced via I2c
         """
+        self.backlight.set_graph(0.4)
         self.prepare_lcd()
         self.lcd.write("CO2: %1.0f PPM" % self.ccs811.eco2)
         self.lcd.set_cursor_position(0, 1)
@@ -154,61 +157,48 @@ def display_environment():
     which activate the buttons of the Display-A-Tron.
     """
     while True:
+        enviro = ZeroWEnvironment(busio,
+                                  envirophat,
+                                  lcd,
+                                  backlight,
+                                  board,
+                                  adafruit_ccs811)
+        enviro.show_weather()
         try:
-            enviro = ZeroWEnvironment(busio,
-                                      envirophat,
-                                      dothat,
-                                      board,
-                                      adafruit_ccs811)
-
             @touch.on(touch.UP)
             def touch_up(chan, event):
-                """
-                When the UP button is pressed
-                """
-                dothat.backlight.rgb(255, 255, 255)
+                """When the UP button is pressed"""
+                backlight.rgb(255, 255, 255)
 
             @touch.on(touch.DOWN)
             def touch_down(chan, event):
-                """
-                When the UP button is pressed
-                """
-                dothat.backlight.off()
+                """When the UP button is pressed"""
+                backlight.rgb()
 
             @touch.on(touch.LEFT)
             def touch_left(chan, event):
-                """
-                When the LEFT button is pressed
-                """
+                """When the LEFT button is pressed"""
                 enviro.change_view("left")
                 enviro.show_view()
 
             @touch.on(touch.RIGHT)
             def touch_right(chan, event):
-                """
-                When the RIGHT button is pressed
-                """
+                """When the RIGHT button is pressed"""
                 enviro.change_view("right")
                 enviro.show_view()
 
             @touch.on(touch.CANCEL)
             def touch_cancel(chan, event):
-                """
-                When the CANCEL button is pressed
-                """
-                x = 1
-                dothat.backlight.sweep((x % 360) / 360.0)
-                dothat.backlight.set_graph(abs(math.sin(x / 100.0)))
+                """When the CANCEL button is pressed"""
+                backlight.rgb(128, 128, 128)
 
             @touch.on(touch.BUTTON)
             def touch_button(chan, event):
-                """
-                When the OTHER button is pressed
-                """
-                dothat.backlight.rgb(128, 128, 128)
+                """When the OTHER button is pressed"""
+                backlight.sweep(random(), random())
 
-            enviro.show_view()
-            time.sleep(1000)
+            time.sleep(10000)
+            sys.exit(0)
 
         except:
             exc_type, exc_obj, exc_tb = sys.exc_info()
