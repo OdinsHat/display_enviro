@@ -11,6 +11,7 @@ It is possible to use the Display-A-Tron buttons to scroll between
 different environment variables as well as effect the display light levels.
 """
 
+import os
 import sys
 import time
 import math
@@ -210,8 +211,10 @@ def display_environment():
             time.sleep(1000)
 
         except:
-            e = sys.exc_info()[0]
-            print("Error: {:s}".format(e))
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print(exc_type, fname, exc_tb.tb_lineno)
+            sys.exit(-1)
 
 
 if __name__ == '__main__':
